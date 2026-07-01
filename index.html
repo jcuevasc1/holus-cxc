@@ -88,6 +88,10 @@
       <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16h6v-6h4l-7-7-7 7h4v6zm-4 2h14v2H5v-2z"/></svg>
       Cargar desde Drive
     </button>
+    <button class="btn-drive" id="btnExportarJSON" style="background:#fff;color:#374151;border:1px solid #e5e7eb;">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6zm-1 1.5L18.5 9H13V3.5zM8 17v-2h8v2H8zm0-4v-2h8v2H8z"/></svg>
+      Exportar JSON
+    </button>
     <span class="drive-status" id="driveStatus">No conectado a Google</span>
   </div>
 
@@ -220,7 +224,7 @@
 
 <script>
 // ---- CONFIG ----
-const CLIENT_ID   = "836296416493-7ljfu4np2r9cg2k3c935qomkcj2abnkr.apps.googleusercontent.com";
+const CLIENT_ID    = "836296416493-7ljfu4np2r9cg2k3c935qomkcj2abnkr.apps.googleusercontent.com";
 const SCOPES      = "https://www.googleapis.com/auth/drive.file";
 const FILENAME    = "holus_cxc_backup.json";
 const REDIRECT_URI = "https://jcuevasc1.github.io/holus-cxc";
@@ -242,21 +246,32 @@ function balP(r){ return (Number(r.monto)||0)-(Number(r.cantidadPagada)||0); }
 function setStatus(msg, tipo){ const el=document.getElementById("driveStatus"); el.textContent=msg; el.className="drive-status"+(tipo?" "+tipo:""); }
 
 // ---- GOOGLE AUTH ----
-function iniciarGoogle(){
-  google.accounts.oauth2.initTokenClient({
+let tokenClient = null;
+let pendingAction = null;
+
+function initTokenClient(){
+  if(tokenClient) return;
+  tokenClient = google.accounts.oauth2.initTokenClient({
     client_id: CLIENT_ID,
     scope: SCOPES,
     callback: (resp) => {
       if(resp.error){ setStatus("Error al conectar con Google","err"); return; }
       accessToken = resp.access_token;
       setStatus("✓ Conectado a Google","ok");
+      if(pendingAction){ pendingAction(); pendingAction=null; }
     }
-  }).requestAccessToken();
+  });
+}
+
+function conGoogle(accion){
+  pendingAction = accion;
+  if(accessToken){ accion(); pendingAction=null; return; }
+  initTokenClient();
+  tokenClient.requestAccessToken();
 }
 
 // ---- GUARDAR EN DRIVE ----
 async function guardarEnDrive(){
-  if(!accessToken){ iniciarGoogle(); setTimeout(guardarEnDrive, 2000); return; }
   setStatus("Guardando en Drive...","");
   const data = JSON.stringify({ cobrar, pagar });
   const blob = new Blob([data],{type:"application/json"});
@@ -295,10 +310,7 @@ async function guardarEnDrive(){
 
 // ---- CARGAR DESDE DRIVE ----
 async function cargarDesdeDrive(){
-  if(!accessToken){ iniciarGoogle(); setTimeout(cargarDesdeDrive, 2000); return; }
-  if(!driveFileId){
-    // Buscar archivo por nombre
-    setStatus("Buscando archivo en Drive...","");
+  setStatus("Buscando archivo en Drive...","");
     try {
       const res = await fetch(`https://www.googleapis.com/drive/v3/files?q=name='${FILENAME}'&spaces=drive`,{
         headers:{"Authorization":"Bearer "+accessToken}
@@ -332,8 +344,24 @@ async function cargarDesdeDrive(){
   } catch(e){ setStatus("Error al cargar: "+e.message,"err"); }
 }
 
-document.getElementById("btnGuardarDrive").addEventListener("click", guardarEnDrive);
-document.getElementById("btnCargarDrive").addEventListener("click", cargarDesdeDrive);
+document.getElementById("btnExportarJSON").addEventListener("click", () => {
+  const data = JSON.stringify({ cobrar, pagar }, null, 2);
+  const blob = new Blob([data], {type:"application/json"});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement("a");
+  a.href = url; a.download = "holus_cxc_backup.json";
+  a.click(); URL.revokeObjectURL(url);
+});
+
+document.getElementById("btnGuardarDrive").addEventListener("click", () => conGoogle(guardarEnDrive));
+document.getElementById("btnCargarDrive").addEventListener("click", () => conGoogle(cargarDesdeDrive));
+
+// Si es local, ocultar botones Drive y mostrar solo Exportar
+if(ES_LOCAL){
+  document.getElementById("btnGuardarDrive").style.display = "none";
+  document.getElementById("btnCargarDrive").style.display  = "none";
+  document.getElementById("driveStatus").textContent = "Modo local — exporta JSON para respaldar";
+}
 
 // ---- TABS ----
 document.querySelectorAll(".tab").forEach(tab => {
