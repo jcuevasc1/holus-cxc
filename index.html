@@ -3,7 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <title>Holus - Cuentas por Cobrar y Pagar</title>
-<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script>
+  if(location.protocol === "https:"){
+    const s = document.createElement("script");
+    s.src = "https://accounts.google.com/gsi/client";
+    s.async = true; s.defer = true;
+    document.head.appendChild(s);
+  }
+</script>
 <style>
   *{box-sizing:border-box;}
   body{font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:#f9fafb;margin:0;padding:20px;color:#1f2937;}
@@ -14,8 +21,8 @@
   .btn-drive{display:flex;align-items:center;gap:6px;padding:7px 14px;border-radius:8px;font-size:13px;cursor:pointer;border:none;font-weight:500;}
   .btn-drive.guardar{background:#1a73e8;color:#fff;}
   .btn-drive.cargar{background:#fff;color:#1a73e8;border:1px solid #1a73e8;}
+  .btn-drive.exportar{background:#fff;color:#374151;border:1px solid #e5e7eb;}
   .btn-drive:hover{opacity:.9;}
-  .btn-drive:disabled{opacity:.5;cursor:not-allowed;}
   .drive-status{font-size:12px;color:#6b7280;}
   .drive-status.ok{color:#059669;} .drive-status.err{color:#e11d48;}
   .summary{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:14px;}
@@ -76,23 +83,22 @@
 <body>
 <div class="container">
   <h1>Holus - Cuentas por Cobrar y Pagar</h1>
-  <p class="sub">Control de facturas, soporte, etiquetas y compras (datos guardados en este navegador)</p>
+  <p class="sub">Control de facturas, soporte, etiquetas y compras</p>
 
-  <!-- DRIVE BAR -->
   <div class="drive-bar">
-    <button class="btn-drive guardar" id="btnGuardarDrive">
+    <button class="btn-drive guardar" id="btnGuardarDrive" style="display:none;">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
       Guardar en Drive
     </button>
-    <button class="btn-drive cargar" id="btnCargarDrive">
+    <button class="btn-drive cargar" id="btnCargarDrive" style="display:none;">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16h6v-6h4l-7-7-7 7h4v6zm-4 2h14v2H5v-2z"/></svg>
       Cargar desde Drive
     </button>
-    <button class="btn-drive" id="btnExportarJSON" style="background:#fff;color:#374151;border:1px solid #e5e7eb;">
+    <button class="btn-drive exportar" id="btnExportarJSON">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6zm-1 1.5L18.5 9H13V3.5zM8 17v-2h8v2H8zm0-4v-2h8v2H8z"/></svg>
       Exportar JSON
     </button>
-    <span class="drive-status" id="driveStatus">No conectado a Google</span>
+    <span class="drive-status" id="driveStatus"></span>
   </div>
 
   <div class="summary">
@@ -118,21 +124,13 @@
     <div class="tab" data-tab="reportes">Reportes</div>
   </div>
 
-  <!-- COBRAR -->
   <div class="section active" id="sec-cobrar">
     <div class="toolbar">
       <h2>Facturas por Cobrar</h2>
       <div class="toolbar-right">
-        <label class="filtro-label">
-          <input type="checkbox" id="filtroSaldo"> Solo con saldo
-        </label>
-        <select class="filtro-sel" id="filtroCliente">
-          <option value="">Todos los clientes</option>
-        </select>
-        <div class="chip-filtro" id="chipComp">
-          ⚠️ Pendientes de complemento
-          <button id="btnQuitarComp">✕</button>
-        </div>
+        <label class="filtro-label"><input type="checkbox" id="filtroSaldo"> Solo con saldo</label>
+        <select class="filtro-sel" id="filtroCliente"><option value="">Todos los clientes</option></select>
+        <div class="chip-filtro" id="chipComp">⚠️ Pendientes de complemento<button id="btnQuitarComp">✕</button></div>
         <button class="add" id="btnNuevaCobrar">+ Nueva factura</button>
       </div>
     </div>
@@ -140,10 +138,7 @@
       <div><label>Fecha de factura</label><input type="date" id="c-fechaFactura"></div>
       <div><label>Cliente</label><input type="text" id="c-cliente" placeholder="Nombre del cliente"></div>
       <div><label>Concepto</label>
-        <select id="c-concepto">
-          <option>Holus</option><option>Soporte</option><option>Etiquetas</option>
-          <option>Impresoras</option><option>Otros</option>
-        </select>
+        <select id="c-concepto"><option>Holus</option><option>Soporte</option><option>Etiquetas</option><option>Impresoras</option><option>Otros</option></select>
       </div>
       <div><label>No. de factura</label><input type="text" id="c-numFactura" placeholder="Ej. 587"></div>
       <div><label>Monto</label><input type="number" id="c-monto" placeholder="0.00"></div>
@@ -157,15 +152,15 @@
     <div class="table-wrap">
       <table>
         <thead><tr>
-          <th class="sort" data-col="fechaFactura">Fecha factura <span class="ind" id="ind-fechaFactura"></span></th>
-          <th class="sort" data-col="cliente">Cliente <span class="ind" id="ind-cliente"></span></th>
-          <th class="sort" data-col="concepto">Concepto <span class="ind" id="ind-concepto"></span></th>
-          <th class="sort" data-col="numFactura">No. factura <span class="ind" id="ind-numFactura"></span></th>
+          <th class="sort" data-col="fechaFactura">Fecha factura <span id="ind-fechaFactura"></span></th>
+          <th class="sort" data-col="cliente">Cliente <span id="ind-cliente"></span></th>
+          <th class="sort" data-col="concepto">Concepto <span id="ind-concepto"></span></th>
+          <th class="sort" data-col="numFactura">No. factura <span id="ind-numFactura"></span></th>
           <th class="center">Comp.<br>Pago</th>
-          <th class="right sort" data-col="monto">Monto <span class="ind" id="ind-monto"></span></th>
+          <th class="right sort" data-col="monto">Monto <span id="ind-monto"></span></th>
           <th class="right">Cobrado</th>
           <th>Fecha pago</th>
-          <th class="right sort" data-col="balance">Balance <span class="ind" id="ind-balance"></span></th>
+          <th class="right sort" data-col="balance">Balance <span id="ind-balance"></span></th>
           <th></th>
         </tr></thead>
         <tbody id="tbodyCobrar"></tbody>
@@ -174,7 +169,6 @@
     </div>
   </div>
 
-  <!-- PAGAR -->
   <div class="section" id="sec-pagar">
     <div class="toolbar">
       <h2>Compras por Pagar (Etiquetas)</h2>
@@ -204,7 +198,6 @@
     </div>
   </div>
 
-  <!-- REPORTES -->
   <div class="section" id="sec-reportes">
     <div class="report-card">
       <h3>Estado de Cuenta por Cliente</h3>
@@ -223,13 +216,12 @@
 </div>
 
 <script>
-// ---- CONFIG ----
-const CLIENT_ID    = "836296416493-7ljfu4np2r9cg2k3c935qomkcj2abnkr.apps.googleusercontent.com";
-const SCOPES      = "https://www.googleapis.com/auth/drive.file";
-const FILENAME    = "holus_cxc_backup.json";
-const REDIRECT_URI = "https://jcuevasc1.github.io/holus-cxc";
-
+const ES_HTTPS = location.protocol === "https:";
+const CLIENT_ID = "836296416493-7ljfu4np2r9cg2k3c935qomkcj2abnkr.apps.googleusercontent.com";
+const SCOPES    = "https://www.googleapis.com/auth/drive.file";
+const FILENAME  = "holus_cxc_backup.json";
 const CONCEPTOS = ["Holus","Soporte","Etiquetas","Impresoras","Otros"];
+
 let cobrar = JSON.parse(localStorage.getItem("holus_cobrar") || "[]");
 let pagar  = JSON.parse(localStorage.getItem("holus_pagar")  || "[]");
 let editIdC = null, editIdP = null;
@@ -237,199 +229,162 @@ let filtroCompActivo = false;
 let sortCol = "fechaFactura", sortDir = 1;
 let accessToken = null;
 let driveFileId = localStorage.getItem("holus_drive_file_id") || null;
+let tokenClient = null;
+let pendingAction = null;
 
 function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
 function fmt(n){ return (Number(n)||0).toLocaleString("es-MX",{style:"currency",currency:"MXN"}); }
 function save(){ localStorage.setItem("holus_cobrar",JSON.stringify(cobrar)); localStorage.setItem("holus_pagar",JSON.stringify(pagar)); }
 function balC(r){ return (Number(r.monto)||0)-(Number(r.cantidadCobrada)||0); }
 function balP(r){ return (Number(r.monto)||0)-(Number(r.cantidadPagada)||0); }
-function setStatus(msg, tipo){ const el=document.getElementById("driveStatus"); el.textContent=msg; el.className="drive-status"+(tipo?" "+tipo:""); }
+function setStatus(msg,tipo){ const el=document.getElementById("driveStatus"); el.textContent=msg; el.className="drive-status"+(tipo?" "+tipo:""); }
 
-// ---- GOOGLE AUTH ----
-let tokenClient = null;
-let pendingAction = null;
+// Mostrar botones Drive solo en HTTPS
+if(ES_HTTPS){
+  document.getElementById("btnGuardarDrive").style.display = "flex";
+  document.getElementById("btnCargarDrive").style.display  = "flex";
+}
 
+// GOOGLE AUTH
 function initTokenClient(){
-  if(tokenClient) return;
+  if(tokenClient||!window.google) return;
   tokenClient = google.accounts.oauth2.initTokenClient({
     client_id: CLIENT_ID,
     scope: SCOPES,
     callback: (resp) => {
-      if(resp.error){ setStatus("Error al conectar con Google","err"); return; }
+      if(resp.error){ setStatus("Error al conectar","err"); return; }
       accessToken = resp.access_token;
       setStatus("✓ Conectado a Google","ok");
       if(pendingAction){ pendingAction(); pendingAction=null; }
     }
   });
 }
-
 function conGoogle(accion){
+  if(!window.google){ setStatus("Google no disponible","err"); return; }
   pendingAction = accion;
   if(accessToken){ accion(); pendingAction=null; return; }
   initTokenClient();
   tokenClient.requestAccessToken();
 }
 
-// ---- GUARDAR EN DRIVE ----
+// GUARDAR EN DRIVE
 async function guardarEnDrive(){
   setStatus("Guardando en Drive...","");
-  const data = JSON.stringify({ cobrar, pagar });
-  const blob = new Blob([data],{type:"application/json"});
-
+  const blob = new Blob([JSON.stringify({cobrar,pagar})],{type:"application/json"});
   try {
     let res;
     if(driveFileId){
-      // Actualizar archivo existente
       res = await fetch(`https://www.googleapis.com/upload/drive/v3/files/${driveFileId}?uploadType=media`,{
-        method:"PATCH",
-        headers:{"Authorization":"Bearer "+accessToken,"Content-Type":"application/json"},
-        body: blob
+        method:"PATCH", headers:{"Authorization":"Bearer "+accessToken,"Content-Type":"application/json"}, body:blob
       });
     } else {
-      // Crear archivo nuevo
       const meta = new Blob([JSON.stringify({name:FILENAME,mimeType:"application/json"})],{type:"application/json"});
-      const form = new FormData();
-      form.append("metadata", meta);
-      form.append("file", blob);
+      const form = new FormData(); form.append("metadata",meta); form.append("file",blob);
       res = await fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart",{
-        method:"POST",
-        headers:{"Authorization":"Bearer "+accessToken},
-        body: form
+        method:"POST", headers:{"Authorization":"Bearer "+accessToken}, body:form
       });
     }
     const json = await res.json();
-    if(json.id){
-      driveFileId = json.id;
-      localStorage.setItem("holus_drive_file_id", driveFileId);
-      setStatus("✓ Guardado en Drive — "+new Date().toLocaleTimeString("es-MX"),"ok");
-    } else {
-      setStatus("Error al guardar: "+JSON.stringify(json),"err");
-    }
-  } catch(e){ setStatus("Error de red: "+e.message,"err"); }
+    if(json.id){ driveFileId=json.id; localStorage.setItem("holus_drive_file_id",driveFileId); setStatus("✓ Guardado en Drive — "+new Date().toLocaleTimeString("es-MX"),"ok"); }
+    else setStatus("Error: "+JSON.stringify(json),"err");
+  } catch(e){ setStatus("Error: "+e.message,"err"); }
 }
 
-// ---- CARGAR DESDE DRIVE ----
+// CARGAR DESDE DRIVE
 async function cargarDesdeDrive(){
-  setStatus("Buscando archivo en Drive...","");
-    try {
-      const res = await fetch(`https://www.googleapis.com/drive/v3/files?q=name='${FILENAME}'&spaces=drive`,{
-        headers:{"Authorization":"Bearer "+accessToken}
-      });
-      const json = await res.json();
-      if(json.files && json.files.length > 0){
-        driveFileId = json.files[0].id;
-        localStorage.setItem("holus_drive_file_id", driveFileId);
-      } else {
-        setStatus("No se encontró backup en Drive","err"); return;
-      }
-    } catch(e){ setStatus("Error buscando archivo","err"); return; }
-  }
-  setStatus("Cargando desde Drive...","");
+  setStatus("Buscando en Drive...","");
   try {
-    const res = await fetch(`https://www.googleapis.com/drive/v3/files/${driveFileId}?alt=media`,{
-      headers:{"Authorization":"Bearer "+accessToken}
-    });
-    const json = await res.json();
-    if(json.cobrar !== undefined && json.pagar !== undefined){
-      if(confirm(`¿Cargar datos desde Drive? Esto reemplazará los datos actuales en esta computadora.`)){
-        cobrar = json.cobrar;
-        pagar  = json.pagar;
-        save();
-        render();
-        setStatus("✓ Datos cargados desde Drive — "+new Date().toLocaleTimeString("es-MX"),"ok");
-      }
-    } else {
-      setStatus("Archivo de Drive no tiene formato válido","err");
+    if(!driveFileId){
+      const res = await fetch(`https://www.googleapis.com/drive/v3/files?q=name='${FILENAME}'&spaces=drive`,{headers:{"Authorization":"Bearer "+accessToken}});
+      const json = await res.json();
+      if(json.files&&json.files.length>0){ driveFileId=json.files[0].id; localStorage.setItem("holus_drive_file_id",driveFileId); }
+      else { setStatus("No se encontró backup en Drive","err"); return; }
     }
-  } catch(e){ setStatus("Error al cargar: "+e.message,"err"); }
+    const res = await fetch(`https://www.googleapis.com/drive/v3/files/${driveFileId}?alt=media`,{headers:{"Authorization":"Bearer "+accessToken}});
+    const json = await res.json();
+    if(json.cobrar!==undefined&&json.pagar!==undefined){
+      if(confirm("¿Cargar datos desde Drive? Reemplazará los datos actuales en esta computadora.")){
+        cobrar=json.cobrar; pagar=json.pagar; save(); render();
+        setStatus("✓ Datos cargados — "+new Date().toLocaleTimeString("es-MX"),"ok");
+      }
+    } else setStatus("Archivo sin formato válido","err");
+  } catch(e){ setStatus("Error: "+e.message,"err"); }
 }
 
-document.getElementById("btnExportarJSON").addEventListener("click", () => {
-  const data = JSON.stringify({ cobrar, pagar }, null, 2);
-  const blob = new Blob([data], {type:"application/json"});
+// EXPORTAR JSON
+document.getElementById("btnExportarJSON").addEventListener("click", ()=>{
+  const blob = new Blob([JSON.stringify({cobrar,pagar},null,2)],{type:"application/json"});
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement("a");
-  a.href = url; a.download = "holus_cxc_backup.json";
-  a.click(); URL.revokeObjectURL(url);
+  a.href=url; a.download=FILENAME; a.click(); URL.revokeObjectURL(url);
 });
 
-document.getElementById("btnGuardarDrive").addEventListener("click", () => conGoogle(guardarEnDrive));
-document.getElementById("btnCargarDrive").addEventListener("click", () => conGoogle(cargarDesdeDrive));
-
-// Si es local, ocultar botones Drive y mostrar solo Exportar
-if(ES_LOCAL){
-  document.getElementById("btnGuardarDrive").style.display = "none";
-  document.getElementById("btnCargarDrive").style.display  = "none";
-  document.getElementById("driveStatus").textContent = "Modo local — exporta JSON para respaldar";
+if(ES_HTTPS){
+  document.getElementById("btnGuardarDrive").addEventListener("click", ()=>conGoogle(guardarEnDrive));
+  document.getElementById("btnCargarDrive").addEventListener("click",  ()=>conGoogle(cargarDesdeDrive));
 }
 
-// ---- TABS ----
-document.querySelectorAll(".tab").forEach(tab => {
-  tab.addEventListener("click", () => {
-    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active","pagar-active"));
-    document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
+// TABS
+document.querySelectorAll(".tab").forEach(tab=>{
+  tab.addEventListener("click",()=>{
+    document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active","pagar-active"));
+    document.querySelectorAll(".section").forEach(s=>s.classList.remove("active"));
     tab.classList.add(tab.dataset.tab==="pagar"?"pagar-active":"active");
     document.getElementById("sec-"+tab.dataset.tab).classList.add("active");
   });
 });
 
 // SORT
-document.querySelectorAll("th.sort").forEach(th => {
-  th.addEventListener("click", () => {
-    const col = th.dataset.col;
-    if(sortCol===col) sortDir*=-1; else { sortCol=col; sortDir=1; }
+document.querySelectorAll("th.sort").forEach(th=>{
+  th.addEventListener("click",()=>{
+    const col=th.dataset.col;
+    if(sortCol===col) sortDir*=-1; else{sortCol=col;sortDir=1;}
     render();
   });
 });
 
 // FILTROS
-document.getElementById("filtroSaldo").addEventListener("change", render);
-document.getElementById("filtroCliente").addEventListener("change", render);
-document.getElementById("btnQuitarComp").addEventListener("click", e => { e.stopPropagation(); quitarFiltroComp(); });
+document.getElementById("filtroSaldo").addEventListener("change",render);
+document.getElementById("filtroCliente").addEventListener("change",render);
+document.getElementById("btnQuitarComp").addEventListener("click",e=>{e.stopPropagation();quitarFiltroComp();});
 
 // FORM COBRAR
-document.getElementById("btnNuevaCobrar").addEventListener("click", () => {
+document.getElementById("btnNuevaCobrar").addEventListener("click",()=>{
   editIdC=null;
   ["c-fechaFactura","c-cliente","c-numFactura","c-monto","c-cobrado","c-fechaPago"].forEach(id=>document.getElementById(id).value="");
   document.getElementById("c-concepto").value="Holus";
   document.getElementById("formCobrar").style.display="grid";
 });
-document.getElementById("btnCancelCobrar").addEventListener("click", () => { document.getElementById("formCobrar").style.display="none"; editIdC=null; });
-document.getElementById("btnSaveCobrar").addEventListener("click", () => {
+document.getElementById("btnCancelCobrar").addEventListener("click",()=>{document.getElementById("formCobrar").style.display="none";editIdC=null;});
+document.getElementById("btnSaveCobrar").addEventListener("click",()=>{
   const cliente=document.getElementById("c-cliente").value.trim();
   const monto=document.getElementById("c-monto").value;
-  if(!cliente||!monto) return alert("Cliente y Monto son obligatorios");
-  const d={
-    fechaFactura:document.getElementById("c-fechaFactura").value,
-    cliente, concepto:document.getElementById("c-concepto").value,
-    numFactura:document.getElementById("c-numFactura").value,
-    monto, cantidadCobrada:document.getElementById("c-cobrado").value,
-    fechaPago:document.getElementById("c-fechaPago").value,
-  };
-  if(editIdC){ const i=cobrar.findIndex(r=>r.id===editIdC); cobrar[i]={...cobrar[i],...d}; }
+  if(!cliente||!monto)return alert("Cliente y Monto son obligatorios");
+  const d={fechaFactura:document.getElementById("c-fechaFactura").value,cliente,concepto:document.getElementById("c-concepto").value,numFactura:document.getElementById("c-numFactura").value,monto,cantidadCobrada:document.getElementById("c-cobrado").value,fechaPago:document.getElementById("c-fechaPago").value};
+  if(editIdC){const i=cobrar.findIndex(r=>r.id===editIdC);cobrar[i]={...cobrar[i],...d};}
   else cobrar.push({id:uid(),compPago:false,...d});
-  save(); document.getElementById("formCobrar").style.display="none"; editIdC=null; render();
+  save();document.getElementById("formCobrar").style.display="none";editIdC=null;render();
 });
 
 // FORM PAGAR
-document.getElementById("btnNuevaPagar").addEventListener("click", () => {
+document.getElementById("btnNuevaPagar").addEventListener("click",()=>{
   editIdP=null;
   ["p-fecha","p-proveedor","p-monto","p-pagado","p-fechaPago"].forEach(id=>document.getElementById(id).value="");
   document.getElementById("formPagar").style.display="grid";
 });
-document.getElementById("btnCancelPagar").addEventListener("click", () => { document.getElementById("formPagar").style.display="none"; editIdP=null; });
-document.getElementById("btnSavePagar").addEventListener("click", () => {
+document.getElementById("btnCancelPagar").addEventListener("click",()=>{document.getElementById("formPagar").style.display="none";editIdP=null;});
+document.getElementById("btnSavePagar").addEventListener("click",()=>{
   const proveedor=document.getElementById("p-proveedor").value.trim();
   const monto=document.getElementById("p-monto").value;
-  if(!proveedor||!monto) return alert("Proveedor y Monto son obligatorios");
+  if(!proveedor||!monto)return alert("Proveedor y Monto son obligatorios");
   const d={fecha:document.getElementById("p-fecha").value,proveedor,monto,cantidadPagada:document.getElementById("p-pagado").value,fechaPago:document.getElementById("p-fechaPago").value};
-  if(editIdP){ const i=pagar.findIndex(r=>r.id===editIdP); pagar[i]={...pagar[i],...d}; }
+  if(editIdP){const i=pagar.findIndex(r=>r.id===editIdP);pagar[i]={...pagar[i],...d};}
   else pagar.push({id:uid(),...d});
-  save(); document.getElementById("formPagar").style.display="none"; editIdP=null; render();
+  save();document.getElementById("formPagar").style.display="none";editIdP=null;render();
 });
 
 function editarCobrar(id){
-  const r=cobrar.find(x=>x.id===id); if(!r) return;
+  const r=cobrar.find(x=>x.id===id);if(!r)return;
   editIdC=id;
   document.getElementById("c-fechaFactura").value=r.fechaFactura||"";
   document.getElementById("c-cliente").value=r.cliente||"";
@@ -440,11 +395,11 @@ function editarCobrar(id){
   document.getElementById("c-fechaPago").value=r.fechaPago||"";
   document.getElementById("formCobrar").style.display="grid";
 }
-function eliminarCobrar(id){ if(confirm("¿Eliminar esta factura?")){ cobrar=cobrar.filter(r=>r.id!==id); save(); render(); } }
-function toggleComp(id,checked){ const i=cobrar.findIndex(r=>r.id===id); if(i<0)return; cobrar[i].compPago=checked; save(); render(); }
+function eliminarCobrar(id){if(confirm("¿Eliminar esta factura?")){cobrar=cobrar.filter(r=>r.id!==id);save();render();}}
+function toggleComp(id,checked){const i=cobrar.findIndex(r=>r.id===id);if(i<0)return;cobrar[i].compPago=checked;save();render();}
 
 function editarPagar(id){
-  const r=pagar.find(x=>x.id===id); if(!r) return;
+  const r=pagar.find(x=>x.id===id);if(!r)return;
   editIdP=id;
   document.getElementById("p-fecha").value=r.fecha||"";
   document.getElementById("p-proveedor").value=r.proveedor||"";
@@ -453,7 +408,7 @@ function editarPagar(id){
   document.getElementById("p-fechaPago").value=r.fechaPago||"";
   document.getElementById("formPagar").style.display="grid";
 }
-function eliminarPagar(id){ if(confirm("¿Eliminar esta compra?")){ pagar=pagar.filter(r=>r.id!==id); save(); render(); } }
+function eliminarPagar(id){if(confirm("¿Eliminar esta compra?")){pagar=pagar.filter(r=>r.id!==id);save();render();}}
 
 function verPendientesComp(){
   filtroCompActivo=true;
@@ -466,17 +421,16 @@ function verPendientesComp(){
   render();
   window.scrollTo({top:document.getElementById("sec-cobrar").offsetTop-20,behavior:"smooth"});
 }
-function quitarFiltroComp(){ filtroCompActivo=false; document.getElementById("chipComp").classList.remove("visible"); render(); }
+function quitarFiltroComp(){filtroCompActivo=false;document.getElementById("chipComp").classList.remove("visible");render();}
 
 function render(){
   const soloSaldo=document.getElementById("filtroSaldo").checked;
   const clienteFiltro=document.getElementById("filtroCliente").value;
-
   const clientesUnicos=[...new Set(cobrar.map(r=>r.cliente).filter(Boolean))].sort();
   const fcEl=document.getElementById("filtroCliente");
   const prev=fcEl.value;
   fcEl.innerHTML='<option value="">Todos los clientes</option>'+clientesUnicos.map(c=>`<option value="${c}">${c}</option>`).join("");
-  if(clientesUnicos.includes(prev)) fcEl.value=prev;
+  if(clientesUnicos.includes(prev))fcEl.value=prev;
 
   let lista=[...cobrar];
   if(soloSaldo)        lista=lista.filter(r=>balC(r)>0);
@@ -488,34 +442,26 @@ function render(){
     if(sortCol==="monto"){va=Number(a.monto)||0;vb=Number(b.monto)||0;}
     else if(sortCol==="balance"){va=balC(a);vb=balC(b);}
     else{va=a[sortCol]||"";vb=b[sortCol]||"";}
-    if(va<vb)return -sortDir; if(va>vb)return sortDir; return 0;
+    if(va<vb)return -sortDir;if(va>vb)return sortDir;return 0;
   });
 
   ["fechaFactura","cliente","concepto","numFactura","monto","balance"].forEach(c=>{
     const el=document.getElementById("ind-"+c);
-    if(el) el.textContent=sortCol===c?(sortDir===1?"▲":"▼"):"";
+    if(el)el.textContent=sortCol===c?(sortDir===1?"▲":"▼"):"";
   });
 
   const tbody=document.getElementById("tbodyCobrar");
   tbody.innerHTML="";
   let totalVista=0;
-  if(lista.length===0){
-    tbody.innerHTML=`<tr><td colspan="10" class="empty">${filtroCompActivo?"No hay facturas pendientes de complemento 🎉":"Sin facturas registradas"}</td></tr>`;
-  }
+  if(lista.length===0)tbody.innerHTML=`<tr><td colspan="10" class="empty">${filtroCompActivo?"No hay facturas pendientes de complemento 🎉":"Sin facturas registradas"}</td></tr>`;
   lista.forEach(r=>{
-    const bal=balC(r); totalVista+=bal;
+    const bal=balC(r);totalVista+=bal;
     const tr=document.createElement("tr");
-    tr.innerHTML=`
-      <td>${r.fechaFactura||"-"}</td><td><strong>${r.cliente}</strong></td>
-      <td>${r.concepto}</td><td>${r.numFactura||"-"}</td>
+    tr.innerHTML=`<td>${r.fechaFactura||"-"}</td><td><strong>${r.cliente}</strong></td><td>${r.concepto}</td><td>${r.numFactura||"-"}</td>
       <td class="center"><input type="checkbox" ${r.compPago?"checked":""} onchange="toggleComp('${r.id}',this.checked)" style="width:16px;height:16px;accent-color:#059669;cursor:pointer;"></td>
-      <td class="right">${fmt(r.monto)}</td><td class="right">${fmt(r.cantidadCobrada)}</td>
-      <td>${r.fechaPago||"-"}</td>
+      <td class="right">${fmt(r.monto)}</td><td class="right">${fmt(r.cantidadCobrada)}</td><td>${r.fechaPago||"-"}</td>
       <td class="right" style="color:${bal>0?"#e11d48":"#059669"};font-weight:600;">${fmt(bal)}</td>
-      <td style="white-space:nowrap;">
-        <button class="link-btn edit-link" onclick="editarCobrar('${r.id}')">Editar</button>
-        <button class="link-btn del-link" onclick="eliminarCobrar('${r.id}')">Eliminar</button>
-      </td>`;
+      <td style="white-space:nowrap;"><button class="link-btn edit-link" onclick="editarCobrar('${r.id}')">Editar</button><button class="link-btn del-link" onclick="eliminarCobrar('${r.id}')">Eliminar</button></td>`;
     tbody.appendChild(tr);
   });
   document.getElementById("footCobrar").textContent=fmt(totalVista);
@@ -523,19 +469,14 @@ function render(){
   const tbodyP=document.getElementById("tbodyPagar");
   tbodyP.innerHTML="";
   let totalP=0;
-  if(pagar.length===0) tbodyP.innerHTML='<tr><td colspan="7" class="empty">Sin compras registradas</td></tr>';
+  if(pagar.length===0)tbodyP.innerHTML='<tr><td colspan="7" class="empty">Sin compras registradas</td></tr>';
   pagar.forEach(r=>{
-    const bal=balP(r); totalP+=bal;
+    const bal=balP(r);totalP+=bal;
     const tr=document.createElement("tr");
-    tr.innerHTML=`
-      <td>${r.fecha||"-"}</td><td><strong>${r.proveedor}</strong></td>
-      <td class="right">${fmt(r.monto)}</td><td class="right">${fmt(r.cantidadPagada)}</td>
-      <td>${r.fechaPago||"-"}</td>
+    tr.innerHTML=`<td>${r.fecha||"-"}</td><td><strong>${r.proveedor}</strong></td>
+      <td class="right">${fmt(r.monto)}</td><td class="right">${fmt(r.cantidadPagada)}</td><td>${r.fechaPago||"-"}</td>
       <td class="right" style="color:${bal>0?"#e11d48":"#059669"};font-weight:600;">${fmt(bal)}</td>
-      <td style="white-space:nowrap;">
-        <button class="link-btn edit-link" onclick="editarPagar('${r.id}')">Editar</button>
-        <button class="link-btn del-link" onclick="eliminarPagar('${r.id}')">Eliminar</button>
-      </td>`;
+      <td style="white-space:nowrap;"><button class="link-btn edit-link" onclick="editarPagar('${r.id}')">Editar</button><button class="link-btn del-link" onclick="eliminarPagar('${r.id}')">Eliminar</button></td>`;
     tbodyP.appendChild(tr);
   });
   document.getElementById("footPagar").textContent=fmt(totalP);
@@ -545,7 +486,7 @@ function render(){
   document.getElementById("totalPagar").textContent=fmt(totalP);
   const neto=totalCobrarReal-totalP;
   const netoEl=document.getElementById("balanceNeto");
-  netoEl.textContent=fmt(neto); netoEl.className="value "+(neto>=0?"green":"red");
+  netoEl.textContent=fmt(neto);netoEl.className="value "+(neto>=0?"green":"red");
 
   const pendComp=cobrar.filter(r=>balC(r)===0&&(Number(r.monto)||0)>0&&!r.compPago);
   const alertaEl=document.getElementById("alertaComp");
@@ -554,14 +495,14 @@ function render(){
     alertaEl.style.display="flex";
   } else {
     alertaEl.style.display="none";
-    if(filtroCompActivo){ quitarFiltroComp(); return; }
+    if(filtroCompActivo){quitarFiltroComp();return;}
   }
 
   const clientesRep=[...new Set(cobrar.map(r=>r.cliente).filter(Boolean))].sort();
   const sel=document.getElementById("selCliente");
   const prevSel=sel.value;
   sel.innerHTML='<option value="">-- Selecciona --</option>'+clientesRep.map(c=>`<option value="${c}">${c}</option>`).join("");
-  if(clientesRep.includes(prevSel)) sel.value=prevSel;
+  if(clientesRep.includes(prevSel))sel.value=prevSel;
   renderEstadoCuenta();
 
   const byCliente={};
@@ -571,7 +512,7 @@ function render(){
     :Object.entries(byCliente).sort((a,b)=>a[0].localeCompare(b[0])).map(([k,v])=>
       `<div class="report-row"><span>${k}</span><strong style="color:${v>0?"#e11d48":"#059669"}">${fmt(v)}</strong></div>`).join("");
 
-  const byConc={}; CONCEPTOS.forEach(c=>byConc[c]=0);
+  const byConc={};CONCEPTOS.forEach(c=>byConc[c]=0);
   cobrar.forEach(r=>{byConc[r.concepto]=(byConc[r.concepto]||0)+balC(r);});
   document.getElementById("repConcepto").innerHTML=CONCEPTOS.map(c=>
     `<div class="report-row"><span>${c}</span><strong style="color:${byConc[c]>0?"#e11d48":"#059669"}">${fmt(byConc[c])}</strong></div>`).join("");
@@ -589,8 +530,7 @@ function renderEstadoCuenta(){
   let tM=0,tCob=0,tBal=0;
   const html=rows.map(r=>{const bal=balC(r);tM+=Number(r.monto)||0;tCob+=Number(r.cantidadCobrada)||0;tBal+=bal;
     return `<tr><td>${r.fechaFactura||"-"}</td><td>${r.numFactura||"-"}</td><td>${r.concepto}</td>
-      <td class="right">${fmt(r.monto)}</td><td class="right">${fmt(r.cantidadCobrada)}</td>
-      <td>${r.fechaPago||"-"}</td>
+      <td class="right">${fmt(r.monto)}</td><td class="right">${fmt(r.cantidadCobrada)}</td><td>${r.fechaPago||"-"}</td>
       <td class="right" style="color:${bal>0?"#e11d48":"#059669"};font-weight:600;">${fmt(bal)}</td></tr>`;
   }).join("");
   cont.innerHTML=`<div class="table-wrap"><table>
@@ -601,7 +541,7 @@ function renderEstadoCuenta(){
   </table></div>`;
 }
 
-document.getElementById("selCliente").addEventListener("change", renderEstadoCuenta);
+document.getElementById("selCliente").addEventListener("change",renderEstadoCuenta);
 render();
 </script>
 </body>
