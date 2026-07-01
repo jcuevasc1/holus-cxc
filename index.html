@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Holus - Cuentas por Cobrar y Pagar</title>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+  *{box-sizing:border-box;}
+  body{font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:#f9fafb;margin:0;padding:20px;color:#1f2937;}
+  .container{max-width:1100px;margin:0 auto;}
+  h1{font-size:22px;margin-bottom:2px;}
+  .sub{color:#6b7280;font-size:13px;margin-bottom:12px;}
+  .drive-bar{display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap;}
+  .btn-drive{display:flex;align-items:center;gap:6px;padding:7px 14px;border-radius:8px;font-size:13px;cursor:pointer;border:none;font-weight:500;}
+  .btn-drive.guardar{background:#1a73e8;color:#fff;}
+  .btn-drive.cargar{background:#fff;color:#1a73e8;border:1px solid #1a73e8;}
+  .btn-drive:hover{opacity:.9;}
+  .btn-drive:disabled{opacity:.5;cursor:not-allowed;}
+  .drive-status{font-size:12px;color:#6b7280;}
+  .drive-status.ok{color:#059669;} .drive-status.err{color:#e11d48;}
+  .summary{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:14px;}
+  .card{background:#fff;border:1px solid #f1f1f1;border-radius:12px;padding:14px;}
+  .card .label{font-size:12px;color:#6b7280;margin:0 0 4px;}
+  .card .value{font-size:22px;font-weight:700;margin:0;}
+  .green{color:#059669;} .red{color:#e11d48;}
+  .alerta-comp{background:#fff7ed;border:1px solid #fb923c;border-radius:12px;padding:12px 18px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;}
+  .alerta-comp:hover{background:#ffedd5;}
+  .alerta-izq{display:flex;align-items:center;gap:10px;}
+  .alerta-titulo{margin:0;font-weight:700;color:#c2410c;font-size:14px;}
+  .alerta-sub{margin:0;font-size:12px;color:#9a3412;}
+  .alerta-ver{font-size:12px;color:#c2410c;font-weight:700;white-space:nowrap;}
+  .tabs{display:flex;gap:6px;border-bottom:1px solid #e5e7eb;margin-bottom:16px;}
+  .tab{padding:10px 16px;font-size:14px;font-weight:500;color:#6b7280;cursor:pointer;border-bottom:2px solid transparent;}
+  .tab.active{color:#059669;border-bottom-color:#059669;}
+  .tab.pagar-active{color:#e11d48;border-bottom-color:#e11d48;}
+  .section{display:none;} .section.active{display:block;}
+  .toolbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;}
+  .toolbar-right{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+  h2{font-size:16px;margin:0;color:#374151;}
+  button.add{background:#10b981;color:#fff;border:none;padding:8px 16px;border-radius:8px;font-size:13px;cursor:pointer;}
+  button.add.pagar{background:#e11d48;}
+  button.add:hover{opacity:.9;}
+  .filtro-label{font-size:13px;color:#374151;display:flex;align-items:center;gap:6px;cursor:pointer;white-space:nowrap;}
+  .filtro-label input[type=checkbox]{width:16px;height:16px;cursor:pointer;accent-color:#059669;}
+  select.filtro-sel{border:1px solid #e5e7eb;border-radius:8px;padding:6px 10px;font-size:13px;color:#374151;}
+  .chip-filtro{display:none;align-items:center;gap:6px;background:#fff7ed;border:1px solid #fb923c;border-radius:8px;padding:4px 10px;font-size:12px;color:#c2410c;font-weight:600;}
+  .chip-filtro.visible{display:flex;}
+  .chip-filtro button{background:none;border:none;color:#c2410c;cursor:pointer;font-size:14px;line-height:1;padding:0 0 0 4px;}
+  .form{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:16px;margin-bottom:16px;display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .form label{font-size:12px;color:#6b7280;display:block;margin-bottom:4px;}
+  .form input,.form select{width:100%;border:1px solid #e5e7eb;border-radius:8px;padding:8px 10px;font-size:13px;}
+  .form-actions{grid-column:span 2;display:flex;justify-content:flex-end;gap:8px;margin-top:4px;}
+  .form-actions button{padding:8px 16px;border-radius:8px;font-size:13px;cursor:pointer;border:none;}
+  .btn-cancel{background:none;color:#6b7280;}
+  .btn-save{background:#10b981;color:#fff;}
+  .btn-save.pagar{background:#e11d48;}
+  .table-wrap{border:1px solid #f1f1f1;border-radius:12px;overflow-x:auto;}
+  table{width:100%;border-collapse:collapse;background:#fff;font-size:13px;}
+  thead tr{text-align:left;color:#6b7280;border-bottom:1px solid #f1f1f1;}
+  th,td{padding:10px 12px;}
+  th.sort{cursor:pointer;user-select:none;white-space:nowrap;}
+  th.sort:hover{color:#374151;}
+  tbody tr{border-bottom:1px solid #f9fafb;}
+  tbody tr:hover{background:#fafafa;}
+  tfoot td{border-top:1px solid #e5e7eb;font-weight:700;}
+  .right{text-align:right;} .center{text-align:center;}
+  .empty{text-align:center;color:#9ca3af;padding:24px;}
+  .link-btn{border:none;background:none;cursor:pointer;font-size:12px;padding:0;}
+  .edit-link{color:#3b82f6;margin-right:8px;} .del-link{color:#e11d48;}
+  .report-card{background:#fff;border:1px solid #f1f1f1;border-radius:12px;padding:16px;margin-bottom:16px;}
+  .report-card h3{margin:0 0 10px;font-size:14px;color:#374151;}
+  .report-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f9fafb;font-size:13px;}
+  @media(max-width:700px){.summary{grid-template-columns:1fr;}.form{grid-template-columns:1fr;}.form-actions{grid-column:span 1;}}
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Holus - Cuentas por Cobrar y Pagar</h1>
+  <p class="sub">Control de facturas, soporte, etiquetas y compras (datos guardados en este navegador)</p>
+
+  <!-- DRIVE BAR -->
+  <div class="drive-bar">
+    <button class="btn-drive guardar" id="btnGuardarDrive">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+      Guardar en Drive
+    </button>
+    <button class="btn-drive cargar" id="btnCargarDrive">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16h6v-6h4l-7-7-7 7h4v6zm-4 2h14v2H5v-2z"/></svg>
+      Cargar desde Drive
+    </button>
+    <span class="drive-status" id="driveStatus">No conectado a Google</span>
+  </div>
+
+  <div class="summary">
+    <div class="card"><p class="label">Total por Cobrar</p><p class="value green" id="totalCobrar">$0.00</p></div>
+    <div class="card"><p class="label">Total por Pagar</p><p class="value red" id="totalPagar">$0.00</p></div>
+    <div class="card"><p class="label">Balance Neto</p><p class="value" id="balanceNeto">$0.00</p></div>
+  </div>
+
+  <div class="alerta-comp" id="alertaComp" style="display:none;" onclick="verPendientesComp()">
+    <div class="alerta-izq">
+      <span style="font-size:22px;">⚠️</span>
+      <div>
+        <p class="alerta-titulo" id="alertaTexto"></p>
+        <p class="alerta-sub">Facturas cobradas sin Complemento de Pago generado — haz click para verlas</p>
+      </div>
+    </div>
+    <span class="alerta-ver">Ver →</span>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" data-tab="cobrar">Por Cobrar</div>
+    <div class="tab" data-tab="pagar">Por Pagar</div>
+    <div class="tab" data-tab="reportes">Reportes</div>
+  </div>
+
+  <!-- COBRAR -->
+  <div class="section active" id="sec-cobrar">
+    <div class="toolbar">
+      <h2>Facturas por Cobrar</h2>
+      <div class="toolbar-right">
+        <label class="filtro-label">
+          <input type="checkbox" id="filtroSaldo"> Solo con saldo
+        </label>
+        <select class="filtro-sel" id="filtroCliente">
+          <option value="">Todos los clientes</option>
+        </select>
+        <div class="chip-filtro" id="chipComp">
+          ⚠️ Pendientes de complemento
+          <button id="btnQuitarComp">✕</button>
+        </div>
+        <button class="add" id="btnNuevaCobrar">+ Nueva factura</button>
+      </div>
+    </div>
+    <div class="form" id="formCobrar" style="display:none;">
+      <div><label>Fecha de factura</label><input type="date" id="c-fechaFactura"></div>
+      <div><label>Cliente</label><input type="text" id="c-cliente" placeholder="Nombre del cliente"></div>
+      <div><label>Concepto</label>
+        <select id="c-concepto">
+          <option>Holus</option><option>Soporte</option><option>Etiquetas</option>
+          <option>Impresoras</option><option>Otros</option>
+        </select>
+      </div>
+      <div><label>No. de factura</label><input type="text" id="c-numFactura" placeholder="Ej. 587"></div>
+      <div><label>Monto</label><input type="number" id="c-monto" placeholder="0.00"></div>
+      <div><label>Cantidad cobrada</label><input type="number" id="c-cobrado" placeholder="0.00"></div>
+      <div><label>Fecha de pago</label><input type="date" id="c-fechaPago"></div>
+      <div class="form-actions">
+        <button class="btn-cancel" id="btnCancelCobrar">Cancelar</button>
+        <button class="btn-save" id="btnSaveCobrar">Guardar</button>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th class="sort" data-col="fechaFactura">Fecha factura <span class="ind" id="ind-fechaFactura"></span></th>
+          <th class="sort" data-col="cliente">Cliente <span class="ind" id="ind-cliente"></span></th>
+          <th class="sort" data-col="concepto">Concepto <span class="ind" id="ind-concepto"></span></th>
+          <th class="sort" data-col="numFactura">No. factura <span class="ind" id="ind-numFactura"></span></th>
+          <th class="center">Comp.<br>Pago</th>
+          <th class="right sort" data-col="monto">Monto <span class="ind" id="ind-monto"></span></th>
+          <th class="right">Cobrado</th>
+          <th>Fecha pago</th>
+          <th class="right sort" data-col="balance">Balance <span class="ind" id="ind-balance"></span></th>
+          <th></th>
+        </tr></thead>
+        <tbody id="tbodyCobrar"></tbody>
+        <tfoot><tr><td colspan="8">Total</td><td class="right" id="footCobrar"></td><td></td></tr></tfoot>
+      </table>
+    </div>
+  </div>
+
+  <!-- PAGAR -->
+  <div class="section" id="sec-pagar">
+    <div class="toolbar">
+      <h2>Compras por Pagar (Etiquetas)</h2>
+      <button class="add pagar" id="btnNuevaPagar">+ Nueva compra</button>
+    </div>
+    <div class="form" id="formPagar" style="display:none;">
+      <div><label>Fecha</label><input type="date" id="p-fecha"></div>
+      <div><label>Proveedor</label><input type="text" id="p-proveedor" placeholder="Nombre del proveedor"></div>
+      <div><label>Monto</label><input type="number" id="p-monto" placeholder="0.00"></div>
+      <div><label>Cantidad pagada</label><input type="number" id="p-pagado" placeholder="0.00"></div>
+      <div><label>Fecha de pago</label><input type="date" id="p-fechaPago"></div>
+      <div class="form-actions">
+        <button class="btn-cancel" id="btnCancelPagar">Cancelar</button>
+        <button class="btn-save pagar" id="btnSavePagar">Guardar</button>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>Fecha</th><th>Proveedor</th>
+          <th class="right">Monto</th><th class="right">Pagado</th>
+          <th>Fecha pago</th><th class="right">Balance</th><th></th>
+        </tr></thead>
+        <tbody id="tbodyPagar"></tbody>
+        <tfoot><tr><td colspan="5">Total</td><td class="right" id="footPagar"></td><td></td></tr></tfoot>
+      </table>
+    </div>
+  </div>
+
+  <!-- REPORTES -->
+  <div class="section" id="sec-reportes">
+    <div class="report-card">
+      <h3>Estado de Cuenta por Cliente</h3>
+      <label style="font-size:12px;color:#6b7280;display:block;margin-bottom:6px;">Selecciona un cliente</label>
+      <select id="selCliente" style="width:100%;border:1px solid #e5e7eb;border-radius:8px;padding:8px 10px;font-size:13px;margin-bottom:12px;"></select>
+      <div id="estadoCuenta"></div>
+    </div>
+    <div class="report-card"><h3>Balance por Cliente</h3><div id="repCliente"></div></div>
+    <div class="report-card"><h3>Balance por Concepto</h3><div id="repConcepto"></div></div>
+    <div class="report-card">
+      <h3>Resumen General</h3>
+      <div class="report-row"><span>Total por Cobrar</span><strong class="green" id="repTotalCobrar"></strong></div>
+      <div class="report-row"><span>Total por Pagar</span><strong class="red" id="repTotalPagar"></strong></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ---- CONFIG ----
+const CLIENT_ID   = "836296416493-7ljfu4np2r9cg2k3c935qomkcj2abnkr.apps.googleusercontent.com";
+const SCOPES      = "https://www.googleapis.com/auth/drive.file";
+const FILENAME    = "holus_cxc_backup.json";
+const REDIRECT_URI = "https://jcuevasc1.github.io/holus-cxc";
+
+const CONCEPTOS = ["Holus","Soporte","Etiquetas","Impresoras","Otros"];
+let cobrar = JSON.parse(localStorage.getItem("holus_cobrar") || "[]");
+let pagar  = JSON.parse(localStorage.getItem("holus_pagar")  || "[]");
+let editIdC = null, editIdP = null;
+let filtroCompActivo = false;
+let sortCol = "fechaFactura", sortDir = 1;
+let accessToken = null;
+let driveFileId = localStorage.getItem("holus_drive_file_id") || null;
+
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+function fmt(n){ return (Number(n)||0).toLocaleString("es-MX",{style:"currency",currency:"MXN"}); }
+function save(){ localStorage.setItem("holus_cobrar",JSON.stringify(cobrar)); localStorage.setItem("holus_pagar",JSON.stringify(pagar)); }
+function balC(r){ return (Number(r.monto)||0)-(Number(r.cantidadCobrada)||0); }
+function balP(r){ return (Number(r.monto)||0)-(Number(r.cantidadPagada)||0); }
+function setStatus(msg, tipo){ const el=document.getElementById("driveStatus"); el.textContent=msg; el.className="drive-status"+(tipo?" "+tipo:""); }
+
+// ---- GOOGLE AUTH ----
+function iniciarGoogle(){
+  google.accounts.oauth2.initTokenClient({
+    client_id: CLIENT_ID,
+    scope: SCOPES,
+    callback: (resp) => {
+      if(resp.error){ setStatus("Error al conectar con Google","err"); return; }
+      accessToken = resp.access_token;
+      setStatus("✓ Conectado a Google","ok");
+    }
+  }).requestAccessToken();
+}
+
+// ---- GUARDAR EN DRIVE ----
+async function guardarEnDrive(){
+  if(!accessToken){ iniciarGoogle(); setTimeout(guardarEnDrive, 2000); return; }
+  setStatus("Guardando en Drive...","");
+  const data = JSON.stringify({ cobrar, pagar });
+  const blob = new Blob([data],{type:"application/json"});
+
+  try {
+    let res;
+    if(driveFileId){
+      // Actualizar archivo existente
+      res = await fetch(`https://www.googleapis.com/upload/drive/v3/files/${driveFileId}?uploadType=media`,{
+        method:"PATCH",
+        headers:{"Authorization":"Bearer "+accessToken,"Content-Type":"application/json"},
+        body: blob
+      });
+    } else {
+      // Crear archivo nuevo
+      const meta = new Blob([JSON.stringify({name:FILENAME,mimeType:"application/json"})],{type:"application/json"});
+      const form = new FormData();
+      form.append("metadata", meta);
+      form.append("file", blob);
+      res = await fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart",{
+        method:"POST",
+        headers:{"Authorization":"Bearer "+accessToken},
+        body: form
+      });
+    }
+    const json = await res.json();
+    if(json.id){
+      driveFileId = json.id;
+      localStorage.setItem("holus_drive_file_id", driveFileId);
+      setStatus("✓ Guardado en Drive — "+new Date().toLocaleTimeString("es-MX"),"ok");
+    } else {
+      setStatus("Error al guardar: "+JSON.stringify(json),"err");
+    }
+  } catch(e){ setStatus("Error de red: "+e.message,"err"); }
+}
+
+// ---- CARGAR DESDE DRIVE ----
+async function cargarDesdeDrive(){
+  if(!accessToken){ iniciarGoogle(); setTimeout(cargarDesdeDrive, 2000); return; }
+  if(!driveFileId){
+    // Buscar archivo por nombre
+    setStatus("Buscando archivo en Drive...","");
+    try {
+      const res = await fetch(`https://www.googleapis.com/drive/v3/files?q=name='${FILENAME}'&spaces=drive`,{
+        headers:{"Authorization":"Bearer "+accessToken}
+      });
+      const json = await res.json();
+      if(json.files && json.files.length > 0){
+        driveFileId = json.files[0].id;
+        localStorage.setItem("holus_drive_file_id", driveFileId);
+      } else {
+        setStatus("No se encontró backup en Drive","err"); return;
+      }
+    } catch(e){ setStatus("Error buscando archivo","err"); return; }
+  }
+  setStatus("Cargando desde Drive...","");
+  try {
+    const res = await fetch(`https://www.googleapis.com/drive/v3/files/${driveFileId}?alt=media`,{
+      headers:{"Authorization":"Bearer "+accessToken}
+    });
+    const json = await res.json();
+    if(json.cobrar !== undefined && json.pagar !== undefined){
+      if(confirm(`¿Cargar datos desde Drive? Esto reemplazará los datos actuales en esta computadora.`)){
+        cobrar = json.cobrar;
+        pagar  = json.pagar;
+        save();
+        render();
+        setStatus("✓ Datos cargados desde Drive — "+new Date().toLocaleTimeString("es-MX"),"ok");
+      }
+    } else {
+      setStatus("Archivo de Drive no tiene formato válido","err");
+    }
+  } catch(e){ setStatus("Error al cargar: "+e.message,"err"); }
+}
+
+document.getElementById("btnGuardarDrive").addEventListener("click", guardarEnDrive);
+document.getElementById("btnCargarDrive").addEventListener("click", cargarDesdeDrive);
+
+// ---- TABS ----
+document.querySelectorAll(".tab").forEach(tab => {
+  tab.addEventListener("click", () => {
+    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active","pagar-active"));
+    document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
+    tab.classList.add(tab.dataset.tab==="pagar"?"pagar-active":"active");
+    document.getElementById("sec-"+tab.dataset.tab).classList.add("active");
+  });
+});
+
+// SORT
+document.querySelectorAll("th.sort").forEach(th => {
+  th.addEventListener("click", () => {
+    const col = th.dataset.col;
+    if(sortCol===col) sortDir*=-1; else { sortCol=col; sortDir=1; }
+    render();
+  });
+});
+
+// FILTROS
+document.getElementById("filtroSaldo").addEventListener("change", render);
+document.getElementById("filtroCliente").addEventListener("change", render);
+document.getElementById("btnQuitarComp").addEventListener("click", e => { e.stopPropagation(); quitarFiltroComp(); });
+
+// FORM COBRAR
+document.getElementById("btnNuevaCobrar").addEventListener("click", () => {
+  editIdC=null;
+  ["c-fechaFactura","c-cliente","c-numFactura","c-monto","c-cobrado","c-fechaPago"].forEach(id=>document.getElementById(id).value="");
+  document.getElementById("c-concepto").value="Holus";
+  document.getElementById("formCobrar").style.display="grid";
+});
+document.getElementById("btnCancelCobrar").addEventListener("click", () => { document.getElementById("formCobrar").style.display="none"; editIdC=null; });
+document.getElementById("btnSaveCobrar").addEventListener("click", () => {
+  const cliente=document.getElementById("c-cliente").value.trim();
+  const monto=document.getElementById("c-monto").value;
+  if(!cliente||!monto) return alert("Cliente y Monto son obligatorios");
+  const d={
+    fechaFactura:document.getElementById("c-fechaFactura").value,
+    cliente, concepto:document.getElementById("c-concepto").value,
+    numFactura:document.getElementById("c-numFactura").value,
+    monto, cantidadCobrada:document.getElementById("c-cobrado").value,
+    fechaPago:document.getElementById("c-fechaPago").value,
+  };
+  if(editIdC){ const i=cobrar.findIndex(r=>r.id===editIdC); cobrar[i]={...cobrar[i],...d}; }
+  else cobrar.push({id:uid(),compPago:false,...d});
+  save(); document.getElementById("formCobrar").style.display="none"; editIdC=null; render();
+});
+
+// FORM PAGAR
+document.getElementById("btnNuevaPagar").addEventListener("click", () => {
+  editIdP=null;
+  ["p-fecha","p-proveedor","p-monto","p-pagado","p-fechaPago"].forEach(id=>document.getElementById(id).value="");
+  document.getElementById("formPagar").style.display="grid";
+});
+document.getElementById("btnCancelPagar").addEventListener("click", () => { document.getElementById("formPagar").style.display="none"; editIdP=null; });
+document.getElementById("btnSavePagar").addEventListener("click", () => {
+  const proveedor=document.getElementById("p-proveedor").value.trim();
+  const monto=document.getElementById("p-monto").value;
+  if(!proveedor||!monto) return alert("Proveedor y Monto son obligatorios");
+  const d={fecha:document.getElementById("p-fecha").value,proveedor,monto,cantidadPagada:document.getElementById("p-pagado").value,fechaPago:document.getElementById("p-fechaPago").value};
+  if(editIdP){ const i=pagar.findIndex(r=>r.id===editIdP); pagar[i]={...pagar[i],...d}; }
+  else pagar.push({id:uid(),...d});
+  save(); document.getElementById("formPagar").style.display="none"; editIdP=null; render();
+});
+
+function editarCobrar(id){
+  const r=cobrar.find(x=>x.id===id); if(!r) return;
+  editIdC=id;
+  document.getElementById("c-fechaFactura").value=r.fechaFactura||"";
+  document.getElementById("c-cliente").value=r.cliente||"";
+  document.getElementById("c-concepto").value=r.concepto||"Holus";
+  document.getElementById("c-numFactura").value=r.numFactura||"";
+  document.getElementById("c-monto").value=r.monto||"";
+  document.getElementById("c-cobrado").value=r.cantidadCobrada||"";
+  document.getElementById("c-fechaPago").value=r.fechaPago||"";
+  document.getElementById("formCobrar").style.display="grid";
+}
+function eliminarCobrar(id){ if(confirm("¿Eliminar esta factura?")){ cobrar=cobrar.filter(r=>r.id!==id); save(); render(); } }
+function toggleComp(id,checked){ const i=cobrar.findIndex(r=>r.id===id); if(i<0)return; cobrar[i].compPago=checked; save(); render(); }
+
+function editarPagar(id){
+  const r=pagar.find(x=>x.id===id); if(!r) return;
+  editIdP=id;
+  document.getElementById("p-fecha").value=r.fecha||"";
+  document.getElementById("p-proveedor").value=r.proveedor||"";
+  document.getElementById("p-monto").value=r.monto||"";
+  document.getElementById("p-pagado").value=r.cantidadPagada||"";
+  document.getElementById("p-fechaPago").value=r.fechaPago||"";
+  document.getElementById("formPagar").style.display="grid";
+}
+function eliminarPagar(id){ if(confirm("¿Eliminar esta compra?")){ pagar=pagar.filter(r=>r.id!==id); save(); render(); } }
+
+function verPendientesComp(){
+  filtroCompActivo=true;
+  document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active","pagar-active"));
+  document.querySelectorAll(".section").forEach(s=>s.classList.remove("active"));
+  document.querySelector("[data-tab='cobrar']").classList.add("active");
+  document.getElementById("sec-cobrar").classList.add("active");
+  document.getElementById("filtroSaldo").checked=false;
+  document.getElementById("chipComp").classList.add("visible");
+  render();
+  window.scrollTo({top:document.getElementById("sec-cobrar").offsetTop-20,behavior:"smooth"});
+}
+function quitarFiltroComp(){ filtroCompActivo=false; document.getElementById("chipComp").classList.remove("visible"); render(); }
+
+function render(){
+  const soloSaldo=document.getElementById("filtroSaldo").checked;
+  const clienteFiltro=document.getElementById("filtroCliente").value;
+
+  const clientesUnicos=[...new Set(cobrar.map(r=>r.cliente).filter(Boolean))].sort();
+  const fcEl=document.getElementById("filtroCliente");
+  const prev=fcEl.value;
+  fcEl.innerHTML='<option value="">Todos los clientes</option>'+clientesUnicos.map(c=>`<option value="${c}">${c}</option>`).join("");
+  if(clientesUnicos.includes(prev)) fcEl.value=prev;
+
+  let lista=[...cobrar];
+  if(soloSaldo)        lista=lista.filter(r=>balC(r)>0);
+  if(clienteFiltro)    lista=lista.filter(r=>r.cliente===clienteFiltro);
+  if(filtroCompActivo) lista=lista.filter(r=>balC(r)===0&&(Number(r.monto)||0)>0&&!r.compPago);
+
+  lista.sort((a,b)=>{
+    let va,vb;
+    if(sortCol==="monto"){va=Number(a.monto)||0;vb=Number(b.monto)||0;}
+    else if(sortCol==="balance"){va=balC(a);vb=balC(b);}
+    else{va=a[sortCol]||"";vb=b[sortCol]||"";}
+    if(va<vb)return -sortDir; if(va>vb)return sortDir; return 0;
+  });
+
+  ["fechaFactura","cliente","concepto","numFactura","monto","balance"].forEach(c=>{
+    const el=document.getElementById("ind-"+c);
+    if(el) el.textContent=sortCol===c?(sortDir===1?"▲":"▼"):"";
+  });
+
+  const tbody=document.getElementById("tbodyCobrar");
+  tbody.innerHTML="";
+  let totalVista=0;
+  if(lista.length===0){
+    tbody.innerHTML=`<tr><td colspan="10" class="empty">${filtroCompActivo?"No hay facturas pendientes de complemento 🎉":"Sin facturas registradas"}</td></tr>`;
+  }
+  lista.forEach(r=>{
+    const bal=balC(r); totalVista+=bal;
+    const tr=document.createElement("tr");
+    tr.innerHTML=`
+      <td>${r.fechaFactura||"-"}</td><td><strong>${r.cliente}</strong></td>
+      <td>${r.concepto}</td><td>${r.numFactura||"-"}</td>
+      <td class="center"><input type="checkbox" ${r.compPago?"checked":""} onchange="toggleComp('${r.id}',this.checked)" style="width:16px;height:16px;accent-color:#059669;cursor:pointer;"></td>
+      <td class="right">${fmt(r.monto)}</td><td class="right">${fmt(r.cantidadCobrada)}</td>
+      <td>${r.fechaPago||"-"}</td>
+      <td class="right" style="color:${bal>0?"#e11d48":"#059669"};font-weight:600;">${fmt(bal)}</td>
+      <td style="white-space:nowrap;">
+        <button class="link-btn edit-link" onclick="editarCobrar('${r.id}')">Editar</button>
+        <button class="link-btn del-link" onclick="eliminarCobrar('${r.id}')">Eliminar</button>
+      </td>`;
+    tbody.appendChild(tr);
+  });
+  document.getElementById("footCobrar").textContent=fmt(totalVista);
+
+  const tbodyP=document.getElementById("tbodyPagar");
+  tbodyP.innerHTML="";
+  let totalP=0;
+  if(pagar.length===0) tbodyP.innerHTML='<tr><td colspan="7" class="empty">Sin compras registradas</td></tr>';
+  pagar.forEach(r=>{
+    const bal=balP(r); totalP+=bal;
+    const tr=document.createElement("tr");
+    tr.innerHTML=`
+      <td>${r.fecha||"-"}</td><td><strong>${r.proveedor}</strong></td>
+      <td class="right">${fmt(r.monto)}</td><td class="right">${fmt(r.cantidadPagada)}</td>
+      <td>${r.fechaPago||"-"}</td>
+      <td class="right" style="color:${bal>0?"#e11d48":"#059669"};font-weight:600;">${fmt(bal)}</td>
+      <td style="white-space:nowrap;">
+        <button class="link-btn edit-link" onclick="editarPagar('${r.id}')">Editar</button>
+        <button class="link-btn del-link" onclick="eliminarPagar('${r.id}')">Eliminar</button>
+      </td>`;
+    tbodyP.appendChild(tr);
+  });
+  document.getElementById("footPagar").textContent=fmt(totalP);
+
+  const totalCobrarReal=cobrar.reduce((s,r)=>s+balC(r),0);
+  document.getElementById("totalCobrar").textContent=fmt(totalCobrarReal);
+  document.getElementById("totalPagar").textContent=fmt(totalP);
+  const neto=totalCobrarReal-totalP;
+  const netoEl=document.getElementById("balanceNeto");
+  netoEl.textContent=fmt(neto); netoEl.className="value "+(neto>=0?"green":"red");
+
+  const pendComp=cobrar.filter(r=>balC(r)===0&&(Number(r.monto)||0)>0&&!r.compPago);
+  const alertaEl=document.getElementById("alertaComp");
+  if(pendComp.length>0){
+    document.getElementById("alertaTexto").textContent=`${pendComp.length} factura${pendComp.length>1?"s":""} pendiente${pendComp.length>1?"s":""} de Complemento de Pago`;
+    alertaEl.style.display="flex";
+  } else {
+    alertaEl.style.display="none";
+    if(filtroCompActivo){ quitarFiltroComp(); return; }
+  }
+
+  const clientesRep=[...new Set(cobrar.map(r=>r.cliente).filter(Boolean))].sort();
+  const sel=document.getElementById("selCliente");
+  const prevSel=sel.value;
+  sel.innerHTML='<option value="">-- Selecciona --</option>'+clientesRep.map(c=>`<option value="${c}">${c}</option>`).join("");
+  if(clientesRep.includes(prevSel)) sel.value=prevSel;
+  renderEstadoCuenta();
+
+  const byCliente={};
+  cobrar.forEach(r=>{const k=r.cliente||"(Sin cliente)";byCliente[k]=(byCliente[k]||0)+balC(r);});
+  document.getElementById("repCliente").innerHTML=Object.keys(byCliente).length===0
+    ?'<p style="color:#9ca3af;font-size:13px;">Sin datos</p>'
+    :Object.entries(byCliente).sort((a,b)=>a[0].localeCompare(b[0])).map(([k,v])=>
+      `<div class="report-row"><span>${k}</span><strong style="color:${v>0?"#e11d48":"#059669"}">${fmt(v)}</strong></div>`).join("");
+
+  const byConc={}; CONCEPTOS.forEach(c=>byConc[c]=0);
+  cobrar.forEach(r=>{byConc[r.concepto]=(byConc[r.concepto]||0)+balC(r);});
+  document.getElementById("repConcepto").innerHTML=CONCEPTOS.map(c=>
+    `<div class="report-row"><span>${c}</span><strong style="color:${byConc[c]>0?"#e11d48":"#059669"}">${fmt(byConc[c])}</strong></div>`).join("");
+
+  document.getElementById("repTotalCobrar").textContent=fmt(totalCobrarReal);
+  document.getElementById("repTotalPagar").textContent=fmt(totalP);
+}
+
+function renderEstadoCuenta(){
+  const cliente=document.getElementById("selCliente").value;
+  const cont=document.getElementById("estadoCuenta");
+  if(!cliente){cont.innerHTML='<p style="color:#9ca3af;font-size:13px;">Selecciona un cliente para ver su estado de cuenta</p>';return;}
+  const rows=cobrar.filter(r=>r.cliente===cliente).sort((a,b)=>(a.fechaFactura||"").localeCompare(b.fechaFactura||""));
+  if(rows.length===0){cont.innerHTML='<p style="color:#9ca3af;font-size:13px;">Sin facturas para este cliente</p>';return;}
+  let tM=0,tCob=0,tBal=0;
+  const html=rows.map(r=>{const bal=balC(r);tM+=Number(r.monto)||0;tCob+=Number(r.cantidadCobrada)||0;tBal+=bal;
+    return `<tr><td>${r.fechaFactura||"-"}</td><td>${r.numFactura||"-"}</td><td>${r.concepto}</td>
+      <td class="right">${fmt(r.monto)}</td><td class="right">${fmt(r.cantidadCobrada)}</td>
+      <td>${r.fechaPago||"-"}</td>
+      <td class="right" style="color:${bal>0?"#e11d48":"#059669"};font-weight:600;">${fmt(bal)}</td></tr>`;
+  }).join("");
+  cont.innerHTML=`<div class="table-wrap"><table>
+    <thead><tr><th>Fecha</th><th>No. factura</th><th>Concepto</th><th class="right">Monto</th><th class="right">Cobrado</th><th>Fecha pago</th><th class="right">Balance</th></tr></thead>
+    <tbody>${html}</tbody>
+    <tfoot><tr><td colspan="3">Total</td><td class="right">${fmt(tM)}</td><td class="right">${fmt(tCob)}</td><td></td>
+    <td class="right" style="color:${tBal>0?"#e11d48":"#059669"}">${fmt(tBal)}</td></tr></tfoot>
+  </table></div>`;
+}
+
+document.getElementById("selCliente").addEventListener("change", renderEstadoCuenta);
+render();
+</script>
+</body>
+</html>
