@@ -2,6 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>Holus - Cuentas por Cobrar y Pagar</title>
 <script>
   if(location.protocol === "https:"){
@@ -78,6 +79,37 @@
   .report-card h3{margin:0 0 10px;font-size:14px;color:#374151;}
   .report-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f9fafb;font-size:13px;}
   @media(max-width:700px){.summary{grid-template-columns:1fr;}.form{grid-template-columns:1fr;}.form-actions{grid-column:span 1;}}
+
+  /* Freeze panes: Fecha factura, Cliente, Concepto, No. factura en la tabla de Por Cobrar */
+  #sec-cobrar .table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+  #sec-cobrar table{table-layout:auto;}
+  #sec-cobrar table th:nth-child(1),#sec-cobrar table td:nth-child(1),
+  #sec-cobrar table th:nth-child(2),#sec-cobrar table td:nth-child(2),
+  #sec-cobrar table th:nth-child(3),#sec-cobrar table td:nth-child(3),
+  #sec-cobrar table th:nth-child(4),#sec-cobrar table td:nth-child(4){
+    position:sticky;background:#fff;z-index:2;
+  }
+  #sec-cobrar table th:nth-child(1),#sec-cobrar table td:nth-child(1){left:0;min-width:88px;}
+  #sec-cobrar table th:nth-child(2),#sec-cobrar table td:nth-child(2){left:88px;min-width:86px;}
+  #sec-cobrar table th:nth-child(3),#sec-cobrar table td:nth-child(3){left:174px;min-width:78px;}
+  #sec-cobrar table th:nth-child(4),#sec-cobrar table td:nth-child(4){left:252px;min-width:78px;box-shadow:2px 0 4px -2px rgba(0,0,0,.15);}
+  #sec-cobrar table thead th{z-index:3;}
+  #sec-cobrar table tbody tr:hover td:nth-child(1),
+  #sec-cobrar table tbody tr:hover td:nth-child(2),
+  #sec-cobrar table tbody tr:hover td:nth-child(3),
+  #sec-cobrar table tbody tr:hover td:nth-child(4){background:#fafafa;}
+
+  @media(max-width:480px){
+    body{padding:12px;}
+    h1{font-size:19px;}
+    .card{padding:10px;}
+    .card .value{font-size:18px;}
+    .drive-drive-bar,.drive-bar{gap:8px;}
+    .btn-drive{padding:6px 10px;font-size:12px;}
+    th,td{padding:8px 8px;font-size:12px;}
+    .toolbar{gap:6px;}
+    h2{font-size:14px;}
+  }
 </style>
 </head>
 <body>
