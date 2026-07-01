@@ -300,8 +300,13 @@ async function cargarDesdeDrive(){
       if(json.files&&json.files.length>0){ driveFileId=json.files[0].id; localStorage.setItem("holus_drive_file_id",driveFileId); }
       else { setStatus("No se encontró backup en Drive","err"); return; }
     }
-    const res = await fetch(`https://www.googleapis.com/drive/v3/files/${driveFileId}?alt=media`,{headers:{"Authorization":"Bearer "+accessToken}});
-    const json = await res.json();
+    const res = await fetch(`https://www.googleapis.com/drive/v3/files/${driveFileId}?alt=media`,{
+      headers:{"Authorization":"Bearer "+accessToken,"Accept":"application/json"}
+    });
+    const text = await res.text();
+    let json;
+    try { json = JSON.parse(text); }
+    catch(e){ setStatus("Error parseando: "+text.substring(0,100),"err"); return; }
     if(json.cobrar!==undefined&&json.pagar!==undefined){
       if(confirm("¿Cargar datos desde Drive? Reemplazará los datos actuales en esta computadora.")){
         cobrar=json.cobrar; pagar=json.pagar; save(); render();
